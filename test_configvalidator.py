@@ -159,11 +159,11 @@ class ConfigValidatorTest(unittest.TestCase):
         """)
 
         with self.schema.section("GLOBAL") as s:
-            s.value("key", value_validator="value").no_other()
+            s.value("key", value_val="value").no_other()
 
         with self.schema.section("OPTIONAL", required=False) as s:
             s.value(t.ItemRegexValidator(r'key_\d+'),
-                    value_validator=t.ItemNumberValidator())
+                    value_val=t.ItemNumberValidator())
 
         self.schema.no_other()
 
@@ -186,7 +186,7 @@ class ConfigValidatorTest(unittest.TestCase):
         """)
 
         with self.schema.section("GLOBAL") as s:
-            s.value("key", value_validator="value").no_other()
+            s.value("key", value_val="value").no_other()
 
     @check_ok
     def test_values_opt_ok(self):
