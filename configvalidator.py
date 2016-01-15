@@ -98,11 +98,9 @@ class _SectionValidator(_BaseValidator):
     def value(self, key, required=True,
               value_validator=ItemDefaultValidator()):
         key = _BaseValidator._norm_key(key, 'key')
+        value = _BaseValidator._norm_key(value_validator, 'value_validator')
 
-        if not isinstance(value_validator, ItemBaseValidator):
-            raise TypeError('value_validator')
-
-        return self._add_value(key, value_validator, required)
+        return self._add_value(key, value, required)
 
 
 class ConfigSchema(_BaseValidator):
