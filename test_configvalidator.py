@@ -41,6 +41,13 @@ class ItemValidatorsTests(unittest.TestCase):
         self.assertFalse(val("str123"))
         self.assertFalse(val("123str"))
 
+    def test_factory(self):
+        val = t.item_validator('TestVal', lambda x: x.title() == 'String')()
+        self.assertIsInstance(val, t.ItemBaseValidator)
+        self.assertTrue(val("string"))
+        self.assertTrue(val("STRING"))
+        self.assertFalse(val("wrong"))
+
 
 def check_ok(func):
     @functools.wraps(func)
