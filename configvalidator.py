@@ -1,3 +1,4 @@
+"""Module for config validation"""
 import configparser
 from contextlib import contextmanager, suppress
 from collections import namedtuple
@@ -22,11 +23,13 @@ __all__ = [
 
 
 class ItemBaseValidator:
+    """Base class for item validators"""
     def __call__(self, value):
         raise NotImplemented
 
 
 def item_validator(name, func):
+    """Class factory for item validators"""
     return type(name, (ItemBaseValidator,),
                 {'__call__': lambda self, x: func(x)})
 
@@ -35,6 +38,7 @@ ItemDefaultValidator = item_validator('ItemDefaultValidator', lambda _: True)
 
 
 class ItemStringValidator(ItemBaseValidator):
+    """String validator"""
     def __init__(self, expected, ignore_case=False):
         if not isinstance(expected, str):
             raise TypeError('expected')
@@ -43,6 +47,7 @@ class ItemStringValidator(ItemBaseValidator):
         self.ign = ignore_case
 
     def __call__(self, value):
+        """Returns True if `value` is equals to `expected`"""
         if self.ign:
             return self.value.casefold() == value.casefold()
 
@@ -50,15 +55,19 @@ class ItemStringValidator(ItemBaseValidator):
 
 
 class ItemRegexValidator(ItemBaseValidator):
+    """Regular expression validator"""
     def __init__(self, regex):
         self.regexp = re.compile(regex)
 
     def __call__(self, value):
+        """Returns True if `regex` full matches `value`"""
         return bool(self.regexp.fullmatch(value))
 
 
 class ItemNumberValidator(ItemBaseValidator):
+    """Non-negative number validator"""
     def __call__(self, value):
+        """Returns True if `value` may be interpreted as non-negative number"""
         try:
             return int(value) >= 0
         except ValueError:
@@ -92,24 +101,31 @@ class _BaseValidator:
 
 
 class _SectionValidator(_BaseValidator):
+    """Allows to describe a scheme for section of config validation"""
     def __init__(self):
         super().__init__()
 
-    def value(self, key, required=True,
-              value_validator=ItemDefaultValidator()):
-        key = _BaseValidator._norm_key(key, 'key')
-        value = _BaseValidator._norm_key(value_validator, 'value_validator')
+    def value(self, key_val, required=True,
+              value_val=ItemDefaultValidator()):
+        """Describes a values in a section in configuration. `key_val` is
+        validator for key of value, `value_val` is validator for value of
+        value"""
+        key = _BaseValidator._norm_key(key_val, 'key_val')
+        value_ = _BaseValidator._norm_key(value_val, 'value_val')
 
-        return self._add_value(key, value, required)
+        return self._add_value(key, value_, required)
 
 
 class ConfigSchema(_BaseValidator):
+    """Allows to describe a scheme for config validation"""
     def __init__(self):
         super().__init__()
 
     @contextmanager
-    def section(self, name, required=True):
-        name = _BaseValidator._norm_key(name, 'name')
+    def section(self, name_val, required=True):
+        """Describes a section in configuration. `name_val` is validator for
+        section name"""
+        name = _BaseValidator._norm_key(name_val, 'name_val')
 
         validator = _SectionValidator()
         yield validator
@@ -117,6 +133,7 @@ class ConfigSchema(_BaseValidator):
 
 
 class ConfigError(Exception):
+    """Base exception-class for validation errors"""
     def __str__(self):
         return self.message
 
@@ -156,13 +173,17 @@ def _validator_safe_call(validator, value):
 
 
 class ConfigSchemaValidator:
+    """Validator engine"""
     def __init__(self, schema):
+        """Initializes validator by `ConfigSchema`"""
         if not isinstance(schema, ConfigSchema):
             raise TypeError('schema')
 
         self._schema = schema
 
     def validate(self, config):
+        """Validates `config` which is `ConfigParser` by schema.
+        Returns True if config is valid or raises `ConfigError` otherwise"""
         if not isinstance(config, configparser.ConfigParser):
             raise TypeError('config')
 
