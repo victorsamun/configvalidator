@@ -15,6 +15,11 @@ __all__ = [
 
     'ItemBaseValidator',
     'ItemDefaultValidator',
+
+    'ItemNotValidator',
+    'ItemOrValidator',
+    'ItemAndValidator',
+
     'ItemStringValidator',
     'ItemRegexValidator',
     'ItemNumberValidator',
@@ -35,6 +40,51 @@ def item_validator(name, func):
 
 
 ItemDefaultValidator = item_validator('ItemDefaultValidator', lambda _: True)
+
+
+def _validator_safe_call(validator, value):
+    with suppress(Exception):
+        return validator(value)
+    return False
+
+
+class ItemNotValidator(ItemBaseValidator):
+    """Logical NOT"""
+    def __init__(self, validator):
+        if not isinstance(validator, ItemBaseValidator):
+            raise TypeError('validator')
+
+        self.validator = validator
+
+    def __call__(self, value):
+        """Returns True if `validator` returns False or fail"""
+        return not _validator_safe_call(self.validator, value)
+
+
+class ItemOrValidator(ItemBaseValidator):
+    """Logical OR"""
+    def __init__(self, *validators):
+        if not all(isinstance(val, ItemBaseValidator) for val in validators):
+            raise TypeError('validators')
+
+        self.validators = validators
+
+    def __call__(self, value):
+        """Returns True if any `validators` returns True"""
+        return any(_validator_safe_call(val, value) for val in self.validators)
+
+
+class ItemAndValidator(ItemBaseValidator):
+    """Logical AND"""
+    def __init__(self, *validators):
+        if not all(isinstance(val, ItemBaseValidator) for val in validators):
+            raise TypeError('validators')
+
+        self.validators = validators
+
+    def __call__(self, value):
+        """Returns True if all `validators` returns True"""
+        return all(_validator_safe_call(val, value) for val in self.validators)
 
 
 class ItemStringValidator(ItemBaseValidator):
@@ -164,12 +214,6 @@ class ValueValidationError(ConfigError):
     def __init__(self, val, section, key, validator_name):
         self.message = ('Wrong value in section "{}", key "{}": '
                         '"{}" ({})').format(section, key, val, validator_name)
-
-
-def _validator_safe_call(validator, value):
-    with suppress(Exception):
-        return validator(value)
-    return False
 
 
 class ConfigSchemaValidator:

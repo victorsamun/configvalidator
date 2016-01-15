@@ -41,8 +41,32 @@ class ItemValidatorsTests(unittest.TestCase):
         self.assertFalse(val("str123"))
         self.assertFalse(val("123str"))
 
+    def test_not_validator(self):
+        val = t.ItemNotValidator(t.ItemStringValidator("wrong"))
+        self.assertIsInstance(val, t.ItemBaseValidator)
+        self.assertTrue(val("not wrong"))
+        self.assertTrue(val("ok"))
+        self.assertFalse(val("wrong"))
+
+    def test_or_validator(self):
+        val = t.ItemOrValidator(
+            t.ItemStringValidator("ok"), t.ItemStringValidator("fail"))
+        self.assertIsInstance(val, t.ItemBaseValidator)
+        self.assertTrue(val("ok"))
+        self.assertTrue(val("fail"))
+        self.assertFalse(val("error"))
+
+    def test_and_validator(self):
+        val = t.ItemAndValidator(
+            t.ItemRegexValidator(r'.*a.*'), t.ItemRegexValidator(r'.*b.*'))
+        self.assertIsInstance(val, t.ItemBaseValidator)
+        self.assertTrue(val("xxabyy"))
+        self.assertTrue(val("bxxayy"))
+        self.assertFalse(val("xxayy"))
+        self.assertFalse(val("xxbyy"))
+
     def test_factory(self):
-        val = t.item_validator('TestVal', lambda x: x.title() == 'String')()
+        val = t.item_validator("TestVal", lambda x: x.title() == "String")()
         self.assertIsInstance(val, t.ItemBaseValidator)
         self.assertTrue(val("string"))
         self.assertTrue(val("STRING"))
