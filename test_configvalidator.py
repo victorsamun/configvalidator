@@ -83,6 +83,31 @@ class ItemValidatorsTests(unittest.TestCase):
             val("ok")
             self.assertTrue(val.teardown())
 
+    def test_complex_count_validator(self):
+        val = t.ItemAndValidator(
+            t.ItemCountValidator(t.ItemStringValidator("ok"),
+                                 lambda x: x > 1),
+            t.ItemCountValidator(t.ItemStringValidator("ok"),
+                                 lambda x: x < 3))
+
+        with self.subTest("one"):
+            val.setup()
+            val("ok")
+            self.assertFalse(val.teardown())
+
+        with self.subTest("two"):
+            val.setup()
+            val("ok")
+            val("ok")
+            self.assertTrue(val.teardown())
+
+        with self.subTest("three"):
+            val.setup()
+            val("ok")
+            val("ok")
+            val("ok")
+            self.assertFalse(val.teardown())
+
     def test_factory(self):
         val = t.item_validator("TestVal", lambda x: x.title() == "String")()
         self.assertIsInstance(val, t.ItemBaseValidator)
