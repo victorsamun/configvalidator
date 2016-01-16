@@ -1,7 +1,8 @@
 """Module for config validation"""
 import configparser
 from contextlib import contextmanager, suppress
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from itertools import chain as iter_chain
 import functools
 import re
 
@@ -19,6 +20,7 @@ __all__ = [
     'ItemNotValidator',
     'ItemOrValidator',
     'ItemAndValidator',
+    'ItemCountValidator',
 
     'ItemStringValidator',
     'ItemRegexValidator',
@@ -29,14 +31,24 @@ __all__ = [
 
 class ItemBaseValidator:
     """Base class for item validators"""
+    def setup(self):
+        pass
+
     def __call__(self, value):
         raise NotImplemented
+
+    def teardown(self):
+        return True
 
 
 def item_validator(name, func):
     """Class factory for item validators"""
     return type(name, (ItemBaseValidator,),
-                {'__call__': lambda self, x: func(x)})
+                {
+                    '__call__': lambda self, x: func(x),
+                    'setup':    lambda self: None,
+                    'teardown': lambda self: True
+                })
 
 
 ItemDefaultValidator = item_validator('ItemDefaultValidator', lambda _: True)
@@ -56,9 +68,16 @@ class ItemNotValidator(ItemBaseValidator):
 
         self.validator = validator
 
+    def setup(self):
+        self.validator.setup()
+
     def __call__(self, value):
-        """Returns True if `validator` returns False or fail"""
+        """Returns `True` if `validator` returns `False` or fail"""
         return not _validator_safe_call(self.validator, value)
+
+    def teardown(self):
+        """Returns `True` if `validator` ends with `False`"""
+        return not self.validator.teardown()
 
 
 class ItemOrValidator(ItemBaseValidator):
@@ -69,9 +88,17 @@ class ItemOrValidator(ItemBaseValidator):
 
         self.validators = validators
 
+    def setup(self):
+        for val in self.validators:
+            val.setup()
+
     def __call__(self, value):
-        """Returns True if any `validators` returns True"""
+        """Returns `True` if any `validators` returns `True`"""
         return any(_validator_safe_call(val, value) for val in self.validators)
+
+    def teardown(self):
+        """Returns `True` if any `validators` ends with `True`"""
+        return any(val.teardown() for val in self.validators)
 
 
 class ItemAndValidator(ItemBaseValidator):
@@ -82,9 +109,49 @@ class ItemAndValidator(ItemBaseValidator):
 
         self.validators = validators
 
+    def setup(self):
+        for val in self.validators:
+            val.setup()
+
     def __call__(self, value):
-        """Returns True if all `validators` returns True"""
+        """Returns `True` if all `validators` returns `True`"""
         return all(_validator_safe_call(val, value) for val in self.validators)
+
+    def teardown(self):
+        """Returns `True` if all `validators` ends with `True`"""
+        return all(val.teardown() for val in self.validators)
+
+
+class ItemCountValidator(ItemBaseValidator):
+    """Counting validator"""
+    def __init__(self, validator, check_fn):
+        """Initializes counting validator by a `validator` and counting
+        function `check_fn`"""
+        if not isinstance(validator, ItemBaseValidator):
+            raise TypeError('validator')
+
+        if not callable(check_fn):
+            raise TypeError('check_fn')
+
+        self.validator = validator
+        self.check_fn = check_fn
+        self.setup()
+
+    def setup(self):
+        self.count = 0
+
+    def __call__(self, value):
+        """Returns `True` if `validator` returns `True`"""
+        if _validator_safe_call(self.validator, value):
+            self.count += 1
+            return True
+
+        return False
+
+    def teardown(self):
+        """Returns `True` if `check_fn` accepts number of successed calls
+        underlying `validator`"""
+        return self.check_fn(self.count)
 
 
 class ItemStringValidator(ItemBaseValidator):
@@ -97,7 +164,7 @@ class ItemStringValidator(ItemBaseValidator):
         self.ign = ignore_case
 
     def __call__(self, value):
-        """Returns True if `value` is equals to `expected`"""
+        """Returns `True` if `value` is equals to `expected`"""
         if self.ign:
             return self.value.casefold() == value.casefold()
 
@@ -110,14 +177,15 @@ class ItemRegexValidator(ItemBaseValidator):
         self.regexp = re.compile(regex)
 
     def __call__(self, value):
-        """Returns True if `regex` full matches `value`"""
+        """Returns `True` if `regex` full matches `value`"""
         return bool(self.regexp.fullmatch(value))
 
 
 class ItemNumberValidator(ItemBaseValidator):
     """Non-negative number validator"""
     def __call__(self, value):
-        """Returns True if `value` may be interpreted as non-negative number"""
+        """Returns `True` if `value` may be interpreted as non-negative
+        number"""
         try:
             return int(value) >= 0
         except ValueError:
@@ -227,7 +295,7 @@ class ConfigSchemaValidator:
 
     def validate(self, config):
         """Validates `config` which is `ConfigParser` by schema.
-        Returns True if config is valid or raises `ConfigError` otherwise"""
+        Returns `True` if config is valid or raises `ConfigError` otherwise"""
         if not isinstance(config, configparser.ConfigParser):
             raise TypeError('config')
 
@@ -239,6 +307,9 @@ class ConfigSchemaValidator:
         req_validators = list(schema.reqs)
         req_vals_pass = [False]*len(req_validators)
         other = []
+
+        for val in iter_chain(schema.reqs, schema.opts):
+            val.key_val.setup()
 
         for (name, value) in items:
             for (i, validator) in enumerate(req_validators):
@@ -254,7 +325,9 @@ class ConfigSchemaValidator:
                 else:
                     other.append(name)
 
-        return (all(req_vals_pass), other)
+        all_completed = all(val.key_val.teardown()
+                            for val in iter_chain(schema.reqs, schema.opts))
+        return (all(req_vals_pass) and all_completed, other)
 
     @staticmethod
     def _check(validate_rv, schema, ok_exc, other_exc):

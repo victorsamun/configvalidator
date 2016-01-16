@@ -65,6 +65,24 @@ class ItemValidatorsTests(unittest.TestCase):
         self.assertFalse(val("xxayy"))
         self.assertFalse(val("xxbyy"))
 
+    def test_count_validator(self):
+        val = t.ItemCountValidator(t.ItemStringValidator("ok"),
+                                   lambda x: x > 1)
+        self.assertIsInstance(val, t.ItemBaseValidator)
+
+        with self.subTest("one"):
+            val.setup()
+            val("ok")
+            val("fail")
+            self.assertFalse(val.teardown())
+
+        with self.subTest("two"):
+            val.setup()
+            val("ok")
+            val("fail")
+            val("ok")
+            self.assertTrue(val.teardown())
+
     def test_factory(self):
         val = t.item_validator("TestVal", lambda x: x.title() == "String")()
         self.assertIsInstance(val, t.ItemBaseValidator)
@@ -228,6 +246,114 @@ class ConfigValidatorTest(unittest.TestCase):
 
         with self.schema.section("GLOBAL") as s:
             s.value("key").value("optional", required=False).no_other()
+
+    @check_ok
+    def test_sections_counter_ok_req(self):
+        self.cfg.read_string("""
+        [SECT_1]
+        key = value
+
+        [SECT_2]
+        key = value
+
+        [OPTIONAL]
+        """)
+
+        with self.schema.section(t.ItemCountValidator(
+            t.ItemRegexValidator(r'SECT_\d+'), lambda x: x > 1)): pass
+
+    @check_ok
+    def test_sections_counter_ok_opt(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+
+        [OPT_1]
+        key = value
+
+        [OPT_2]
+        key = value
+        """)
+
+        with self.schema.section(t.ItemCountValidator(
+            t.ItemRegexValidator(r'OPT_\d+'), lambda x: x > 1),
+            required=False): pass
+
+    @check_fail
+    def test_sections_counter_fail_req(self):
+        self.cfg.read_string("""
+        [SECT_1]
+        key = value
+
+        [OPTIONAL]
+        """)
+
+        with self.schema.section(t.ItemCountValidator(
+            t.ItemRegexValidator(r'SECT_\d+'), lambda x: x > 1)): pass
+
+    @check_fail
+    def test_sections_counter_fail_opt(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+
+        [OPT_1]
+        key = value
+        """)
+
+        with self.schema.section(t.ItemCountValidator(
+            t.ItemRegexValidator(r'OPT_\d+'), lambda x: x > 1),
+            required=False): pass
+
+    @check_ok
+    def test_values_counter_ok_req(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+        key_1 = value1
+        key_2 = value2
+        opt = optional
+        """)
+
+        with self.schema.section("GLOBAL") as s:
+            s.value(t.ItemCountValidator(
+                t.ItemRegexValidator(r'key_\d+'), lambda x: x > 1))
+
+    @check_ok
+    def test_values_counter_ok_opt(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+        key = value
+        opt_1 = value1
+        opt_2 = value2
+        """)
+
+        with self.schema.section("GLOBAL") as s:
+            s.value(t.ItemCountValidator(
+                t.ItemRegexValidator(r'opt_\d+'), lambda x: x > 1),
+                required=False)
+
+    @check_fail
+    def test_values_counter_fail_req(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+        key_1 = value1
+        opt = optional
+        """)
+
+        with self.schema.section("GLOBAL") as s:
+            s.value(t.ItemCountValidator(
+                t.ItemRegexValidator(r'key_\d+'), lambda x: x > 1))
+
+    @check_fail
+    def test_values_counter_fail_opt(self):
+        self.cfg.read_string("""
+        [GLOBAL]
+        key = value
+        opt_1 = value1
+        """)
+
+        with self.schema.section("GLOBAL") as s:
+            s.value(t.ItemCountValidator(
+                t.ItemRegexValidator(r'opt_\d+'), lambda x: x > 1),
+                required=False)
 
 
 if __name__ == '__main__':
