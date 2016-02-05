@@ -24,7 +24,7 @@
 
 ## Примеры использования
 
-```
+```python
 import configparser
 import configvalidator as v
 
