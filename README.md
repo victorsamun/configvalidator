@@ -35,13 +35,15 @@ schema = v.ConfigSchema()
 
 # Секция с названием "REQUIRED" будет обязательной
 with schema.section("REQUIRED") as s:
-  # В ней могут обязательно должны быть ключи, соответствующие
+  # В ней обязательно должны быть ключи, соответствующие
   # регвыру r'item_\d+' и числовым значением и больше ничего
   s.value(v.ItemRegexValidator(r'item_\d+', value_val=v.ItemNumberValidator()).no_other()
+  
 # Секция с названием r'OPT_\w+' (проверка по регвыру) не обязательная
 with schema.section(v.ItemRegexValidator(r'OPT_\w+'), required=False) as s:
   # И в ней может быть всё, что угодно
   pass
+  
 # Других секций нет
 schema.no_other()
 
