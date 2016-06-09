@@ -4,7 +4,7 @@
 ## Использование
 
 1. Нужно инициализировать описание структуры валидной конфигурации:
-   `schema = configvalidator.ConfigSchema()`
+   `schema = configchecker.ConfigSchema()`
 2. Далее в описание нужно добавить информацию о возможных секциях.
    Сделать это можно с помощью вызова `schema.section`, который принимает валидатор названия секции и флаг «секция обязательная».
 3. Затем в каждой секции аналогичным образом, вызовом `sect.value` описываются значения, содержащиеся в секции.
@@ -26,7 +26,7 @@
 
 ```python
 import configparser
-import configvalidator as v
+import configchecker as v
 
 config = configparser.ConfigParser()
 config.read_file("config")
@@ -51,7 +51,7 @@ schema.no_other()
 v.ConfigSchemaValidator(schema).validate(config)
 ```
 
-Также, большое количество примеров можно найти в тестах (`test_configvalidator.py`)
+Также, большое количество примеров можно найти в тестах (`test_configchecker.py`)
 
 
 ## Автор
