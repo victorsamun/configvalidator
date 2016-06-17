@@ -1,5 +1,5 @@
 # configchecker
-This module helps you to check `configparser`-loaded configurations.
+This module helps to check `configparser`-loaded configurations.
 
 ## Usage
 
@@ -12,13 +12,13 @@ This module helps you to check `configparser`-loaded configurations.
 
 There are basic validators:
 * `ItemDefaultValidator` — always returns true
-* `ItemStringValidator` — checks equals a string with given (probably, case-insensitive)
+* `ItemStringValidator` — checks if a string equals to given (probably, case-insensitive)
 * `ItemRegexValidator` — checks matching a string to given regexp
-* `ItemNumberValidator` — checks that a string is non-negative integer
+* `ItemNumberValidator` — checks that a string is a non-negative integer
 
 And validator-composers which allow to create more complex checks:
 * `ItemNotValidator`, `ItemAndValidator`, `ItemOrValidator` — first-order logic on validators
-* `ItemCountValidator` — takes a validator and functions that checks number of validator's true positives (i.e. returns `True`)
+* `ItemCountValidator` — takes a validator and a function that check number of validator's true positives (i.e. returns `True`)
 
 ## Examples
 
@@ -48,7 +48,7 @@ schema.no_other()
 v.ConfigSchemaValidator(schema).validate(config)
 ```
 
-Also, lots of examples you can find in tests (`test_configchecker.py`)
+Also, you can find lots of examples in tests (`test_configchecker.py`)
 
 
 ## Author
