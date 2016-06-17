@@ -5,7 +5,7 @@ This module helps to check `configparser`-loaded configurations.
 
 1. Initialize description of valid configuration:
    `schema = configchecker.ConfigSchema()`
-2. Add information of possible sections by calling `schema.section` with section name validator and boolean flag „section required“.
+2. Add an information of possible sections by calling `schema.section` with section name validator and boolean flag „section required“.
 3. In every section describe possible section's values by calling `sect.value`.
 
 ## Name/value validators
