@@ -1,5 +1,3 @@
-|coveralls| |pyversions| |license|
-
 configchecker
 -------------
 This module helps to check ``configparser``-loaded configurations.
