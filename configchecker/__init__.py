@@ -8,7 +8,7 @@ from collections import namedtuple, defaultdict
 from itertools import chain as iter_chain
 
 
-__version__ = '0.9'
+__version__ = '0.95'
 __all__ = [
     'ConfigSchema',
     'ConfigSchemaValidator',
