@@ -4,6 +4,11 @@ python:
     - "3.4"
     - "3.5"
 
-install: "pip install tox"
+install:
+    - pip install tox
+    - pip install coveralls
 
 script: tox
+
+after_success:
+    - coveralls
