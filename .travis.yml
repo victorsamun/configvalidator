@@ -4,6 +4,6 @@ env:
     - TOXENV=py34
     - TOXENV=py35
 
-install: pip3 install tox
+install: pip install tox
 
 script: tox
