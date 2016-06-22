@@ -1,6 +1,6 @@
 configchecker
 -------------
-|buildci| |coveralls|
+|buildci| |coveralls| |pyversions|
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
@@ -78,3 +78,4 @@ Samun Victor, victor.samun@gmail.com
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/configchecker.svg
 .. |DwnWeek| image:: https://img.shields.io/pypi/dw/configchecker.svg
 .. |DwnDay| image:: https://img.shields.io/pypi/dd/configchecker.svg
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/configchecker.svg
