@@ -1,6 +1,10 @@
 configchecker
 -------------
-|coveralls|
+|buildci| |coveralls|
+
+|DwnMonth| |DwnWeek| |DwnDay|
+
+|license|
 
 This module helps to check ``configparser``-loaded configurations.
 
@@ -65,5 +69,12 @@ Author
 
 Samun Victor, victor.samun@gmail.com
 
+.. |buildci| image:: https://travis-ci.org/victorsamun/configvalidator.svg?branch=master
+   :target: https://travis-ci.org/victorsamun/configvalidator
 .. |coveralls| image:: https://coveralls.io/repos/github/victorsamun/configvalidator/badge.svg?branch=master
    :target: https://coveralls.io/github/victorsamun/configvalidator?branch=master
+.. |license| image::  https://img.shields.io/pypi/l/configchecker.svg
+   :target: https://github.com/victorsamun/configvalidator/blob/master/LICENSE
+.. |DwnMonth| image:: https://img.shields.io/pypi/dm/configchecker.svg
+.. |DwnWeek| image:: https://img.shields.io/pypi/dw/configchecker.svg
+.. |DwnDay| image:: https://img.shields.io/pypi/dd/configchecker.svg
