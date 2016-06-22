@@ -1,5 +1,7 @@
 configchecker
 -------------
+|coveralls|
+
 This module helps to check ``configparser``-loaded configurations.
 
 Usage
@@ -62,3 +64,6 @@ Author
 ======
 
 Samun Victor, victor.samun@gmail.com
+
+.. |coveralls| image:: https://coveralls.io/repos/github/victorsamun/configvalidator/badge.svg?branch=master
+   :target: https://coveralls.io/github/victorsamun/configvalidator?branch=master
