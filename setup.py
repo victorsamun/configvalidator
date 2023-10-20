@@ -23,7 +23,7 @@ setup(
     author_email='victor.samun@gmail.com',
     license='MIT',
     classifiers=[
-        'Development Status :: 5 - Stable',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.4',
