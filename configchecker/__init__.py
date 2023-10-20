@@ -1,14 +1,14 @@
 """Module for config validation"""
 
+import collections
+import contextlib
 import configparser
 import functools
+import itertools
 import re
-from contextlib import contextmanager, suppress
-from collections import namedtuple, defaultdict
-from itertools import chain as iter_chain
 
 
-__version__ = '0.95'
+__version__ = '1.0'
 __all__ = [
     'ConfigSchema',
     'ConfigSchemaValidator',
@@ -36,7 +36,7 @@ class ItemBaseValidator:
         pass
 
     def __call__(self, value):
-        raise NotImplemented
+        raise NotImplementedError
 
     def teardown(self):
         return True
@@ -45,27 +45,32 @@ class ItemBaseValidator:
 def item_validator(name, func):
     """Class factory for item validators"""
     return type(name, (ItemBaseValidator,),
-                {
-                    '__call__': lambda self, x: func(x),
-                    'setup':    lambda self: None,
-                    'teardown': lambda self: True
-                })
+                dict(
+                    __call__=lambda _, x: func(x),
+                    setup=lambda _: None,
+                    teardown=lambda _: True,
+                ))
 
 
 ItemDefaultValidator = item_validator('ItemDefaultValidator', lambda _: True)
 
 
 def _validator_safe_call(validator, value):
-    with suppress(Exception):
+    with contextlib.suppress(Exception):
         return validator(value)
     return False
+
+
+def _check_is_base_validator(validator):
+    if not isinstance(validator, ItemBaseValidator):
+        raise TypeError(
+            '{!r} is not an instance of ItemBaseValidator'.format(validator))
 
 
 class ItemNotValidator(ItemBaseValidator):
     """Logical NOT"""
     def __init__(self, validator):
-        if not isinstance(validator, ItemBaseValidator):
-            raise TypeError('validator')
+        _check_is_base_validator(validator)
 
         self.validator = validator
 
@@ -84,8 +89,8 @@ class ItemNotValidator(ItemBaseValidator):
 class ItemOrValidator(ItemBaseValidator):
     """Logical OR"""
     def __init__(self, *validators):
-        if not all(isinstance(val, ItemBaseValidator) for val in validators):
-            raise TypeError('validators')
+        for val in validators:
+            _check_is_base_validator(val)
 
         self.validators = validators
 
@@ -105,8 +110,8 @@ class ItemOrValidator(ItemBaseValidator):
 class ItemAndValidator(ItemBaseValidator):
     """Logical AND"""
     def __init__(self, *validators):
-        if not all(isinstance(val, ItemBaseValidator) for val in validators):
-            raise TypeError('validators')
+        for val in validators:
+            _check_is_base_validator(val)
 
         self.validators = validators
 
@@ -128,11 +133,10 @@ class ItemCountValidator(ItemBaseValidator):
     def __init__(self, validator, check_fn):
         """Initializes counting validator by a `validator` and counting
         function `check_fn`"""
-        if not isinstance(validator, ItemBaseValidator):
-            raise TypeError('validator')
+        _check_is_base_validator(validator)
 
         if not callable(check_fn):
-            raise TypeError('check_fn')
+            raise TypeError('{!r} is not callable'.format(check_fn))
 
         self.validator = validator
         self.check_fn = check_fn
@@ -159,14 +163,14 @@ class ItemStringValidator(ItemBaseValidator):
     """String validator"""
     def __init__(self, expected, ignore_case=False):
         if not isinstance(expected, str):
-            raise TypeError('expected')
+            raise TypeError('{!r} is not a string'.format(expected))
 
         self.value = expected
-        self.ign = ignore_case
+        self.ignore_case = ignore_case
 
     def __call__(self, value):
         """Returns `True` if `value` is equals to `expected`"""
-        if self.ign:
+        if self.ignore_case:
             return self.value.casefold() == value.casefold()
 
         return self.value == value
@@ -193,7 +197,8 @@ class ItemNumberValidator(ItemBaseValidator):
             return False
 
 
-_ValidatorItem = namedtuple('_ValidatorItem', ('key_val', 'value_val'))
+_ValidatorItem = collections.namedtuple(
+    '_ValidatorItem', ('key_val', 'value_val'))
 
 
 class _BaseValidator:
@@ -210,7 +215,8 @@ class _BaseValidator:
     @staticmethod
     def _norm_key(key, name):
         if not isinstance(key, (str, ItemBaseValidator)):
-            raise TypeError(name)
+            raise TypeError(
+                '{!r} is not a string or ItemBaseValidator'.format(key))
 
         return ItemStringValidator(key) if isinstance(key, str) else key
 
@@ -234,7 +240,7 @@ class _SectionValidator(_BaseValidator):
 
 class ConfigSchema(_BaseValidator):
     """Allows to describe a scheme for config validation"""
-    @contextmanager
+    @contextlib.contextmanager
     def section(self, name_val, required=True):
         """Describes a section in configuration. `name_val` is validator for
         section name"""
@@ -247,36 +253,39 @@ class ConfigSchema(_BaseValidator):
 
 class ConfigError(Exception):
     """Base exception-class for validation errors"""
-    def __str__(self):
-        return self.message
+    pass
 
 
 class UnexpectedSectionsError(ConfigError):
     def __init__(self, section_names):
-        self.message = 'Unexpected sections with names: "{}"'.format(
-            ', '.join(section_names))
+        super().__init__(
+            'Unexpected sections with names: "{}"'.format(
+                ', '.join(section_names)))
 
 
 class ExpectedSectionsError(ConfigError):
     def __init__(self):
-        self.message = 'Other sections expected'
+        super().__init__('Other sections expected')
 
 
 class UnexpectedValuesError(ConfigError):
     def __init__(self, section, value_names):
-        self.message = 'Unexpected values: "{}" in section "{}"'.format(
-            ', '.join(value_names), section)
+        super().__init__(
+            'Unexpected values: "{}" in section "{}"'.format(
+                ', '.join(value_names), section))
 
 
 class ExpectedValuesError(ConfigError):
     def __init__(self, section):
-        self.message = 'Other values expected in section "{}"'.format(section)
+        super().__init__(
+            'Other values expected in section "{}"'.format(section))
 
 
 class ValueValidationError(ConfigError):
     def __init__(self, val, section, key, validator_name):
-        self.message = ('Wrong value in section "{}", key "{}": '
-                        '"{}" ({})').format(section, key, val, validator_name)
+        super().__init__(
+            'Wrong value in section "{}", key "{}": "{}" ({})'.format(
+                section, key, val, validator_name))
 
 
 class ConfigSchemaValidator:
@@ -284,7 +293,8 @@ class ConfigSchemaValidator:
     def __init__(self, schema):
         """Initializes validator by `ConfigSchema`"""
         if not isinstance(schema, ConfigSchema):
-            raise TypeError('schema')
+            raise TypeError(
+                '{!r} is not an instance of ConfigSchema'.format(schema))
 
         self._schema = schema
 
@@ -292,7 +302,8 @@ class ConfigSchemaValidator:
         """Validates `config` which is `ConfigParser` by schema.
         Returns `True` if config is valid or raises `ConfigError` otherwise"""
         if not isinstance(config, configparser.ConfigParser):
-            raise TypeError('config')
+            raise TypeError(
+                '{!r} is not an instance of ConfigParser'.format(config))
 
         ConfigSchemaValidator._validate_config(config, self._schema)
         return True
@@ -303,7 +314,7 @@ class ConfigSchemaValidator:
         req_vals_pass = [False]*len(req_validators)
         other = []
 
-        for val in iter_chain(schema.reqs, schema.opts):
+        for val in itertools.chain(schema.reqs, schema.opts):
             val.key_val.setup()
 
         for (name, value) in items:
@@ -320,8 +331,9 @@ class ConfigSchemaValidator:
                 else:
                     other.append(name)
 
-        all_completed = all(val.key_val.teardown()
-                            for val in iter_chain(schema.reqs, schema.opts))
+        all_completed = all(
+            val.key_val.teardown()
+            for val in itertools.chain(schema.reqs, schema.opts))
         return (all(req_vals_pass) and all_completed, other)
 
     @staticmethod

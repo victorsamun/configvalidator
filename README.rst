@@ -1,6 +1,6 @@
 configchecker
 -------------
-|buildci| |coveralls| |pyversions|
+|pyversions|
 
 |DwnMonth| |DwnWeek| |DwnDay|
 
@@ -38,25 +38,25 @@ Examples
 
     import configparser
     import configchecker as v
-    
+
     config = configparser.ConfigParser()
     config.read_file("config")
-    
+
     schema = v.ConfigSchema()
-    
+
     # Section with name „REQUIRED“ will be mandatory
     with schema.section("REQUIRED") as s:
         # It must have keys matching regexp r'item_\d+' and numeric value and nothing more
         s.value(v.ItemRegexValidator(r'item_\d+', value_val=v.ItemNumberValidator()).no_other()
-      
+
     # Section with name r'OPT_\w+' (check by regexp) will be optional
     with schema.section(v.ItemRegexValidator(r'OPT_\w+'), required=False) as s:
         # And it may have anything
         pass
-      
+
     # Other sections will be restricted
     schema.no_other()
-    
+
     # Run checks
     v.ConfigSchemaValidator(schema).validate(config)
 
@@ -69,10 +69,6 @@ Author
 
 Samun Victor, victor.samun@gmail.com
 
-.. |buildci| image:: https://travis-ci.org/victorsamun/configvalidator.svg?branch=master
-   :target: https://travis-ci.org/victorsamun/configvalidator
-.. |coveralls| image:: https://coveralls.io/repos/github/victorsamun/configvalidator/badge.svg?branch=master
-   :target: https://coveralls.io/github/victorsamun/configvalidator?branch=master
 .. |license| image::  https://img.shields.io/pypi/l/configchecker.svg
    :target: https://github.com/victorsamun/configvalidator/blob/master/LICENSE
 .. |DwnMonth| image:: https://img.shields.io/pypi/dm/configchecker.svg
